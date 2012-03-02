@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys
+import sys, stat, os
 import fcntl
 import struct
 
@@ -10,15 +10,20 @@ def get_blkdev_size(fd):
 
 class SnapshotDevice(object):
 	def __init__(self, filename):
+		statinfo = os.stat(filename)
 		self.filename = filename
 		self.f = open(filename, 'rb')
-		self.devsize = get_blkdev_size(self.f.fileno())
+		if stat.S_ISBLK(statinfo.st_mode): self.devsize = get_blkdev_size(self.f.fileno())
+		else: self.devsize = statinfo.st_size
 		self.chunk_size = self.chunk_bytes = 0
 		self.exc_per_area = 0
 
+	def dev_read(self, pos, size):
+		self.f.seek(pos)
+		return self.f.read(size)
+
 	def read_header(self):
-		self.f.seek(0)
-		buf = self.f.read(4 * 4)
+		buf = self.dev_read(0, 4 * 4)
 		p = struct.unpack('<4I', buf)
 		print 'HEADER'
 		print '  magic: %08x' % p[0]
@@ -53,8 +58,7 @@ class SnapshotDevice(object):
 	def dump_area(self, area, show_diff=False):
 		chunk = self.area_to_chunk(area)
 		print 'area %d chunk: %ld => offset %ld' % (area, chunk, chunk * self.chunk_bytes)
-		self.f.seek(chunk * self.chunk_bytes)
-		area = self.f.read(self.chunk_bytes)
+		area = self.dev_read(chunk * self.chunk_bytes, self.chunk_bytes)
 		for i in xrange(0, self.exc_per_area*16, 16):
 			old_chunk,new_chunk = struct.unpack('<QQ', area[i:i+16])
 			if new_chunk == 0: return False
@@ -63,17 +67,22 @@ class SnapshotDevice(object):
 				new_data = self.read_chunk(new_chunk)
 				for j in xrange(0, self.chunk_bytes, 16):
 					s = new_data[j:j+16]
-					s1 = ' '.join(['%04x' % x for x in struct.unpack('>8H', s)])
-					s2 = ''.join([x.isalnum() and x or '.' for x in s])
-					print '%04x:' % j, s1, s2
+					if s != '\x00'*16 and s != '\xff'*16:
+						s1 = ' '.join(['%04x' % x for x in struct.unpack('>8H', s)])
+						s2 = ''.join([x.isalnum() and x or '.' for x in s])
+						print '%04x:' % j, s1, s2
 		return True
 
 	def read_chunk(self, chunk):
-		self.f.seek(chunk * self.chunk_bytes)
-		return self.f.read(self.chunk_bytes)
+		return self.dev_read(chunk * self.chunk_bytes, self.chunk_bytes)
+
+verbose = False
+if len(sys.argv) == 3 and sys.argv[1] == '-v':
+	verbose = True
+	sys.argv.pop(0)
 
 sd = SnapshotDevice(sys.argv[1])
 if not sd.read_header(): sys.exit(1)
 #print sd.num_areas()
 for i in xrange(sd.num_areas()):
-	if not sd.dump_area(i, True): break
+	if not sd.dump_area(i, verbose): break

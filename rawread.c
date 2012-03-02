@@ -1,35 +1,4 @@
-#define _GNU_SOURCE
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/mount.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-
-const int ALIGN = 4096;
-
-const void *align_ptr(const void *p, int alignment)
-{
-	const void *q = p + alignment - 1;
-	int mod = ((uint64_t)q) % alignment;
-	return q - mod;
-}
-
-int64_t dev_get_size(int fd)
-{
-	int64_t size;
-	if (ioctl(fd, BLKGETSIZE64, &size) < 0) {
-		perror("ioctl BLKGETSIZE64");
-		return -1;
-	}
-	return size;
-}
+#include "common.h"
 
 int main(int argc, char *argv[])
 {
@@ -57,7 +26,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	p = (void *)align_ptr(buf, ALIGN);
+	p = align_ptr(buf, ALIGN);
 	for (offset = 0; offset < size; offset += ALIGN) {
 		n = read(fd, p, ALIGN);
 		if (n != ALIGN) {
