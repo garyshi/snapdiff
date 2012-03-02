@@ -1,1 +1,24 @@
+OVERVIEW
+========
 Give insights of Linux LVM snapshots, and make incremental backups based on them.
+
+USAGE
+=====
+Now, it is pretty early, can only dump information about a snapshot (the COW device).
+
+make, and run dumpsnap:
+	./dumpsnap <snapshot-cow-device>
+
+FILES
+=====
+ * devcmp.py:   compare two devices, looking for different chunks.
+                usually used to compare the snapshot and it's origin,
+                to prove the correctness of dumpsnap.
+ * dumpdev.py:  dump a chunk from a device, a debug tool.
+ * dumpsnap.c:  compiles to dumpsnap, shows snapshot COW header and exception table.
+                it uses O_DIRECT to read devices so it could reflect up-to-date info.
+                it's recommended to sync the COW device after change.
+ * dumpsnap.py: experimental code to verify the snapshot disk layout, works like
+                dumpsnap but couldn't use O_DIRECT, so it won't see latest data.
+ * rawread.c:   compiles to rawread, copy some data with O_DIRECT from beginning of
+                the device to a file, so dumpsnap.py can work on latest data.
