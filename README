@@ -2,6 +2,8 @@ OVERVIEW
 ========
 Give insights of Linux LVM snapshots, and make incremental backups based on them.
 
+Snapdiff is licensed under GPL v2, the same license of the Linux kernel.
+
 USAGE
 =====
 Now, it is pretty early, can only dump information about a snapshot (the COW device).
