@@ -78,6 +78,7 @@ int read_header(struct snapshot_info *info)
 	memcpy(&info->version, buf+8, 4);
 	memcpy(&info->chunk_sectors, buf+12, 4);
 
+	puts("HEADER");
 	printf("header magic: %08x\n", info->magic);
 	printf("header valid: %d\n", info->valid);
 	printf("header version: %d\n", info->version);
@@ -96,6 +97,7 @@ int read_header(struct snapshot_info *info)
 	printf("exc_per_area: %d\n", info->exc_per_area);
 	printf("area_size: %d\n", info->area_size);
 	printf("num_areas: %d\n", info->num_areas);
+	putchar('\n');
 
 	return 0;
 }
@@ -134,6 +136,7 @@ int diff_area(struct snapshot_info *info, int64_t area)
 		read_chunk(info, *new_chunk, new_buf);
 		read_block(info->fd_origin, *old_chunk, old_buf, info->chunk_size);
 		show_diff(old_buf, new_buf, info->chunk_size);
+		putchar('\n');
 	}
 
 	return num_excs;
@@ -141,7 +144,6 @@ int diff_area(struct snapshot_info *info, int64_t area)
 
 int main(int argc, char *argv[])
 {
-	const char *filename = argv[1];
 	int64_t size, area, num_excs;
 	struct snapshot_info info;
 	int n;
@@ -158,7 +160,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	info.fd = open(filename, O_RDONLY|O_DIRECT|O_LARGEFILE);
+	info.fd = open(argv[2], O_RDONLY|O_DIRECT|O_LARGEFILE);
 	if (info.fd < 0) {
 		perror("open cow device");
 		return 1;
